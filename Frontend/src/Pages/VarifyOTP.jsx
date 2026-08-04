@@ -90,7 +90,7 @@ const VerifyOTP = () => {
             setSuccess("");
 
             const response = await axios.post(
-                "http://localhost:5000/verify-otp",
+                "https://prepwise-ai-backend-0ttv.onrender.com/verify-otp",
                 {
                     email,
                     otp: otpValue,

@@ -38,7 +38,7 @@ const Register = () => {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/register",
+                "https://prepwise-ai-backend-0ttv.onrender.com/register",
                 formData
             );
 

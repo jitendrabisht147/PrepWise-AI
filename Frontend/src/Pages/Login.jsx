@@ -30,7 +30,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/login",
+        "https://prepwise-ai-backend-0ttv.onrender.com/login",
         loginData
       )
       localStorage.setItem('token', response.data.token);

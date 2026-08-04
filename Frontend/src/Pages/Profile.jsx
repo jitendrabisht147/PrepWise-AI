@@ -19,7 +19,7 @@ const Profile = () => {
                 const token = localStorage.getItem("token");
 
                 const response = await axios.get(
-                    "http://localhost:5000/profile",
+                    "https://prepwise-ai-backend-0ttv.onrender.com/profile",
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,

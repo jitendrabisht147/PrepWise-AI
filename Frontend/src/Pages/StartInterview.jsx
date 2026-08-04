@@ -28,7 +28,7 @@ const StartInterview = () => {
       const token = localStorage.getItem("token");
 
       const response = await axios.post(
-        "http://localhost:5000/generate-questions",
+        "https://prepwise-ai-backend-0ttv.onrender.com/generate-questions",
         formData,
         {
           headers: {

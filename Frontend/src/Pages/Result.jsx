@@ -23,7 +23,7 @@ const Result = () => {
                 const token = localStorage.getItem("token");
 
                 const response = await axios.post(
-                    "http://localhost:5000/evaluate-interview",
+                    "https://prepwise-ai-backend-0ttv.onrender.com/evaluate-interview",
                     {
                         questions,
                         answers,

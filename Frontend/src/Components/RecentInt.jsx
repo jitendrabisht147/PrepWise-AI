@@ -14,7 +14,7 @@ const RecentInt = () => {
                 const token = localStorage.getItem("token");
 
                 const response = await axios.get(
-                    "http://localhost:5000/interviews",
+                    "https://prepwise-ai-backend-0ttv.onrender.com/interviews",
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,

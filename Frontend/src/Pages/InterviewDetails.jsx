@@ -17,7 +17,7 @@ const InterviewDetails = () => {
                 const token = localStorage.getItem("token");
 
                 const response = await axios.get(
-                    `http://localhost:5000/interviews/${id}`,
+                    `https://prepwise-ai-backend-0ttv.onrender.com/interviews/${id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
