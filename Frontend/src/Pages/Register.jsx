@@ -134,7 +134,7 @@ const Register = () => {
                                     </p>
                                 )
                             }
-                            <button type='submit' className='mt-5 py-2 bg-purple-600 text-white hover:bg-purple-700 shadow-md rounded-lg font-semibold'>
+                            <button type='submit' className='mt-2 py-2 bg-purple-600 text-white hover:bg-purple-700 shadow-md rounded-lg font-semibold'>
                                 Create Account
                             </button>
                         </form>

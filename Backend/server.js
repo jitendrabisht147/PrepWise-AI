@@ -10,7 +10,7 @@ const sendEmail = require('../Backend/Utils/sendEmail');
 const PendingUser = require('../Backend/models/PendingUser')
 
 const cors = require('cors');
-const mongoose = require('mongoose');    
+const mongoose = require('mongoose');
 const client = new OpenAI({
     apiKey: process.env.GROQ_API_KEY,
     baseURL: 'https://api.groq.com/openai/v1',
@@ -41,6 +41,11 @@ app.post('/register', async (req, res) => {
                 success: false,
                 message: 'Email already exists'
             });
+        }
+        const existingPendingUser = await PendingUser.findOne({ email });
+
+        if (existingPendingUser) {
+            await PendingUser.deleteOne({ email });
         }
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -117,17 +122,17 @@ app.post('/verify-otp', async (req, res) => {
         email: pendingUser.email,
         password: pendingUser.password
     });
-    
+
     await user.save();
 
     await PendingUser.deleteOne({
-    email: pendingUser.email
-});
+        email: pendingUser.email
+    });
 
-   return res.status(200).json({
-    success: true,
-    message: "Account verified successfully"
-});
+    return res.status(200).json({
+        success: true,
+        message: "Account verified successfully"
+    });
 });
 
 app.post('/resend-otp', async (req, res) => {
@@ -135,39 +140,39 @@ app.post('/resend-otp', async (req, res) => {
 
         const { email } = req.body;
 
-const pendingUser = await PendingUser.findOne({ email });
+        const pendingUser = await PendingUser.findOne({ email });
 
-if (!pendingUser) {
-    return res.status(404).json({
-        success: false,
-        message: "No pending registration found."
-    });
-}
+        if (!pendingUser) {
+            return res.status(404).json({
+                success: false,
+                message: "No pending registration found."
+            });
+        }
 
-const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+        const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-pendingUser.otp = otp;
-pendingUser.otpExpires = otpExpires;
+        pendingUser.otp = otp;
+        pendingUser.otpExpires = otpExpires;
 
-await pendingUser.save();
+        await pendingUser.save();
 
-await sendEmail(
-    email,
-    "PrepWise AI - New Verification OTP",
-    `
+        await sendEmail(
+            email,
+            "PrepWise AI - New Verification OTP",
+            `
         <h2>Your New OTP</h2>
         <p>Your new verification code is:</p>
         <h1 style="color:blue;">${otp}</h1>
         <p>This OTP is valid for 5 minutes.</p>
     `
-);
+        );
 
-return res.status(200).json({
-    success: true,
-    message: "New OTP sent successfully."
-});
+        return res.status(200).json({
+            success: true,
+            message: "New OTP sent successfully."
+        });
 
 
     } catch (error) {
@@ -182,7 +187,7 @@ return res.status(200).json({
 
 app.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;    
+        const { email, password } = req.body;
         const existemail = await User.findOne({ email })
 
 
@@ -472,6 +477,8 @@ app.get('/test-email', async (req, res) => {
     }
 });
 
-app.listen(5000, () => {
-    console.log('server running at http://localhost:5000')
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
