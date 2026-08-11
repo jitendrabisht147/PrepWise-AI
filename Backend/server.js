@@ -2,12 +2,12 @@ const Interview = require('./models/Interview');
 require('dotenv').config();
 const express = require('express');
 const User = require('./models/User')
-const bcrypt = require('bcryptjs')
+const bcrypt = require('bcryptjs')   
 const jwt = require('jsonwebtoken')
 const authMiddleware = require('./middleware/authMiddleware');
 const OpenAI = require('openai');
-const sendEmail = require('../Backend/Utils/sendEmail');
-const PendingUser = require('../Backend/models/PendingUser')
+const sendEmail = require('./Utils/sendEmail')
+const PendingUser = require('./models/PendingUser')
 
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -29,29 +29,37 @@ app.get('/', (req, res) => {
 
 
 app.post('/register', async (req, res) => {
-
     try {
 
         const { name, email, password } = req.body;
 
+        // Check if user already exists
         const existingUser = await User.findOne({ email });
 
         if (existingUser) {
             return res.status(400).json({
                 success: false,
-                message: 'Email already exists'
+                message: "Email already exists"
             });
         }
+
+        // Delete old pending user if exists
         const existingPendingUser = await PendingUser.findOne({ email });
 
         if (existingPendingUser) {
             await PendingUser.deleteOne({ email });
         }
+
+        // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // OTP expiry (5 minutes)
         const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
+        // Save pending user
         const pendingUser = new PendingUser({
             name,
             email,
@@ -62,11 +70,12 @@ app.post('/register', async (req, res) => {
 
         await pendingUser.save();
 
+        // Send OTP email
         await sendEmail(
             email,
             "PrepWise AI - Email Verification",
             `
-                <h2>Welcome to PrepWise AI </h2>
+                <h2>Welcome to PrepWise AI</h2>
         
                 <p>Your verification code is:</p>
         
@@ -77,23 +86,22 @@ app.post('/register', async (req, res) => {
                 <p>If you didn't create this account, you can ignore this email.</p>
             `
         );
-
-        res.status(200).json({
+        
+        return res.status(200).json({
             success: true,
             message: "OTP sent successfully. Please verify your email."
         });
 
     } catch (error) {
 
-        console.log(error);
+        console.error("Register Error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: 'Server Error'
+            message: "Server Error"
         });
 
     }
-
 });
 
 app.post('/verify-otp', async (req, res) => {

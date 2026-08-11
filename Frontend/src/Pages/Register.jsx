@@ -16,7 +16,7 @@ const Register = () => {
     })
     const [error, setError] = useState('');
 
-    const [success, setSuccess] = useState('');
+    const [success, setSuccess] = useState('');                  
                        
     const handleChange = (e) => {   
         setFormData({
@@ -104,7 +104,7 @@ const Register = () => {
                             />
                             <label className='text-slate-700'>Password</label>
                             <input
-                                type='text'
+                                type='password'
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
