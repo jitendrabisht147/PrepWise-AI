@@ -29,7 +29,7 @@ const VerifyOTP = () => {
     }, [timer]);
 
     const handleChange = (value, index) => {
-        if (!/^\d?$/.test(value)) return;
+        if (!/^\d?$/.test(value)) return;                      
 
         const newOtp = [...otp];
         newOtp[index] = value;
