@@ -12,7 +12,7 @@ const PendingUser = require('./models/PendingUser')
 const cors = require('cors');
 const mongoose = require('mongoose');
 const client = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,
+    apiKey: process.env.GROQ_API_KEY,        
     baseURL: 'https://api.groq.com/openai/v1',
 });
 
