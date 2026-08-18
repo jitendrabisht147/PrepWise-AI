@@ -11,7 +11,7 @@ const MockInterview = () => {
   const questions = location.state?.questions || [];
   const [question, setQuestion] = useState(1)
   const [answers, setAnswers] = useState(Array(questions.length).fill(''));
-  const progress = (question / questions.length) * 100;
+  const progress = ((question - 1) / questions.length) * 100;
   const navigate = useNavigate();
 
   return (
