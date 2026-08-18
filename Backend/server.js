@@ -1,6 +1,6 @@
 const Interview = require('./models/Interview');
 require('dotenv').config();
-const express = require('express');
+const express = require('express'); 
 const User = require('./models/User')
 const bcrypt = require('bcryptjs')   
 const jwt = require('jsonwebtoken')
@@ -8,13 +8,12 @@ const authMiddleware = require('./middleware/authMiddleware');
 const OpenAI = require('openai');
 const sendEmail = require('./Utils/sendEmail')
 const PendingUser = require('./models/PendingUser')
-
 const cors = require('cors');
 const mongoose = require('mongoose');
-const client = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,        
-    baseURL: 'https://api.groq.com/openai/v1',
-});
+const client = new OpenAI({            
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: 'https://api.groq.com/openai/v1',   
+});                                                                                                                                         
 
 const app = express();
 app.use(cors());
@@ -119,6 +118,7 @@ app.post('/verify-otp', async (req, res) => {
             message: "Invalid OTP"
         });
     }
+
     if (pendingUser.otpExpires < new Date()) {
         return res.status(400).json({
             success: false,
@@ -223,6 +223,7 @@ app.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        
 
         return res.status(200).json({
             success: true,
@@ -307,7 +308,7 @@ app.post('/generate-questions', authMiddleware, async (req, res) => {
     try {
 
         const response = await client.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
+            model: "openai/gpt-oss-120b",
             messages: [
                 {
                     role: "user",
@@ -349,7 +350,7 @@ app.post('/evaluate-interview', authMiddleware, async (req, res) => {
         console.log(req.body);
 
         const response = await client.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
+            model: "openai/gpt-oss-120b",
             messages: [
                 {
                     role: "user",

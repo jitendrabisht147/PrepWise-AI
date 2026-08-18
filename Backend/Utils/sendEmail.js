@@ -5,18 +5,19 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const sendEmail = async (to, subject, html) => {
     try {
         await resend.emails.send({
-            from: 'PrepWise AI <onboarding@resend.dev>',
+            from: 'PrepWise AI <onboarding@resend.dev>',   
             to,
             subject,
-            html,
+            html,        
         });
-
+     
         console.log("Email sent successfully");
 
     } catch (error) {
         console.error("Email Error:", error.message);
-        throw error;
-    }
+        throw error;   
+    }   
 };
+
 
 module.exports = sendEmail;
