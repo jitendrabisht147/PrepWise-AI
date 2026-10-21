@@ -15,16 +15,16 @@ const Topbar = ({ user, setSidebarOpen }) => {
     return (
         <div
             className={`fixed top-0 right-0 w-full lg:w-[calc(100%-17.5rem)] h-20 shadow-md transition-all duration-300 z-40 ${darkMode
-                ? "bg-slate-950 border-b border-slate-800"
-                : "bg-white border-b border-slate-200"
+                ? "bg-slate-950  border-slate-800"
+                : "bg-white  border-slate-200"
                 }`}
         >
 
-            <div className="flex items-center justify-between px-6 w-full h-full">
+            <div className="flex items-center justify-end  px-6 w-full h-full">
 
                 {/* Search */}
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center  gap-10">
 
                     <button
                         onClick={() => setSidebarOpen(true)}
@@ -62,7 +62,7 @@ const Topbar = ({ user, setSidebarOpen }) => {
 
                     {/* User */}
 
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center justify-end  gap-5">
 
                         <p
                             className={`text-2xl font-bold ${darkMode

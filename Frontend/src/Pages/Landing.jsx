@@ -8,8 +8,10 @@ import Footer from '../Components/Footer'
 const Landing = () => {
   return (
     <div>
-      <Navbar/>
-      <Hero/>
+      <div className='bg-gradient-to-br from-slate-300 via-white to-purple-300 h-screen '>
+        <Navbar/>
+        <Hero/>
+      </div>
       <Features/>
       <Howitworks/>
       <Footer/>

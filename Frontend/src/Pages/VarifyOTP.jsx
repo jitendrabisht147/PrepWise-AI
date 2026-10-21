@@ -18,6 +18,14 @@ const VerifyOTP = () => {
 
     const inputRefs = useRef([]);
 
+    // Guard: Redirect back to registration if email is absent
+    useEffect(() => {
+        if (!email) {
+            navigate("/register", { replace: true });
+        }
+    }, [email, navigate]);
+
+    // Resend countdown timer
     useEffect(() => {
         if (timer === 0) return;
 
@@ -28,56 +36,68 @@ const VerifyOTP = () => {
         return () => clearInterval(interval);
     }, [timer]);
 
-    const handleChange = (value, index) => {
-        if (!/^\d?$/.test(value)) return;                      
+    const handleChange = (e, index) => {
+        const val = e.target.value;
+        // Take the last character entered so overwriting works cleanly
+        const digit = val.slice(-1);
+
+        if (digit && !/^\d$/.test(digit)) return;
 
         const newOtp = [...otp];
-        newOtp[index] = value;
+        newOtp[index] = digit;
         setOtp(newOtp);
 
-        if (value && index < 5) {
-            inputRefs.current[index + 1].focus();
+        // Move to the next input if a digit was entered
+        if (digit && index < 5) {
+            inputRefs.current[index + 1]?.focus();
         }
     };
 
     const handleKeyDown = (e, index) => {
-        if (
-            e.key === "Backspace" &&
-            !otp[index] && 
-            index > 0 
-        ) {
-            inputRefs.current[index - 1].focus();
+        if (e.key === "Backspace") {
+            if (!otp[index] && index > 0) {
+                // If current box is already empty, jump to previous and clear it
+                inputRefs.current[index - 1]?.focus();
+                const newOtp = [...otp];
+                newOtp[index - 1] = "";
+                setOtp(newOtp);
+            } else {
+                const newOtp = [...otp];
+                newOtp[index] = "";
+                setOtp(newOtp);
+            }
+        } else if (e.key === "ArrowLeft" && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        } else if (e.key === "ArrowRight" && index < 5) {
+            inputRefs.current[index + 1]?.focus();
         }
     };
 
     const handlePaste = (e) => {
         e.preventDefault();
-
-        const paste = e.clipboardData
+        const pasteData = e.clipboardData
             .getData("text")
             .trim()
             .slice(0, 6);
 
-        if (!/^\d+$/.test(paste)) return;
+        if (!/^\d+$/.test(pasteData)) return;
 
-        const digits = paste.split("");
-
+        const digits = pasteData.split("");
         const newOtp = [...otp];
 
         digits.forEach((digit, index) => {
-            newOtp[index] = digit;
+            if (index < 6) newOtp[index] = digit;
         });
 
         setOtp(newOtp);
 
-        if (digits.length < 6) {
-            inputRefs.current[digits.length].focus();
-        }
+        // Focus the next empty box, or the last box if full 6 digits are pasted
+        const targetIndex = digits.length >= 6 ? 5 : digits.length;
+        inputRefs.current[targetIndex]?.focus();
     };
 
     const handleVerify = async (e) => {
         e.preventDefault();
-
         const otpValue = otp.join("");
 
         if (otpValue.length !== 6) {
@@ -97,16 +117,15 @@ const VerifyOTP = () => {
                 }
             );
 
-            setSuccess(response.data.message);
+            setSuccess(response.data.message || "Account verified successfully!");
 
             setTimeout(() => {
                 navigate("/login");
-            }, 1500);
+            }, 1200);
 
-        } catch (error) {
+        } catch (err) {
             setError(
-                error.response?.data?.message ||
-                "Verification failed."
+                err.response?.data?.message || "Verification failed. Please check your code."
             );
         } finally {
             setLoading(false);
@@ -124,142 +143,115 @@ const VerifyOTP = () => {
                 { email }
             );
 
-            setSuccess(response.data.message);
+            setSuccess(response.data.message || "New OTP dispatched to your inbox.");
             setTimer(60);
+            setOtp(["", "", "", "", "", ""]);
+            inputRefs.current[0]?.focus();
 
-        } catch (error) {
+        } catch (err) {
             setError(
-                error.response?.data?.message ||
-                "Something went wrong"
+                err.response?.data?.message || "Failed to resend OTP. Please try again."
             );
         } finally {
             setResendLoading(false);
         }
     };
 
-    return  (
-        <div className="min-h-screen bg-gradient-to-br from-purple-100 via-white to-indigo-100 flex items-center justify-center px-4">
-
-            <div className="bg-white/80 backdrop-blur-lg shadow-2xl rounded-3xl p-8 w-full max-w-md">
-
-                <div className="flex justify-center mb-5">
-
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-purple-100 via-white to-indigo-100 flex items-center justify-center px-4 py-8">
+            <div className="bg-white/90 backdrop-blur-lg shadow-2xl rounded-3xl p-6 sm:p-8 w-full max-w-md border border-slate-100">
+                <div className="flex justify-center mb-4">
                     <div className="bg-purple-100 p-4 rounded-full">
-
                         <MdOutlineMarkEmailRead
                             className="text-purple-600"
-                            size={45}
+                            size={42}
                         />
-
                     </div>
-
                 </div>
 
-                <h1 className="text-3xl font-bold text-center text-slate-800">
+                <h1 className="text-2xl sm:text-3xl font-bold text-center text-slate-800">
                     Verify Email
                 </h1>
 
-                <p className="text-center text-slate-500 mt-3">
-                    Enter the verification code sent to
+                <p className="text-center text-slate-500 text-sm mt-2">
+                    Enter the 6-digit verification code sent to
                 </p>
 
-                <p className="text-center font-semibold text-purple-600 break-all mt-1">
+                <p className="text-center font-semibold text-purple-600 break-all text-sm mt-0.5">
                     {email}
                 </p>
 
                 {error && (
-                    <p className="text-red-500 text-center mt-5">
+                    <div className="text-red-500 text-xs sm:text-sm bg-red-50 border border-red-200 rounded-lg p-2.5 text-center mt-4">
                         {error}
-                    </p>
+                    </div>
                 )}
 
                 {success && (
-                    <p className="text-green-600 text-center mt-5">
+                    <div className="text-emerald-600 text-xs sm:text-sm bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-center mt-4">
                         {success}
-                    </p>
+                    </div>
                 )}
 
-                <form
-                    onSubmit={handleVerify}
-                    className="mt-8"
-                >
-
+                <form onSubmit={handleVerify} className="mt-6">
                     <div
-                        className="flex justify-center gap-3"
+                        className="flex justify-between gap-1.5 sm:gap-2.5"
                         onPaste={handlePaste}
                     >
-
                         {otp.map((digit, index) => (
                             <input
                                 key={index}
-                                ref={(el) =>
-                                    (inputRefs.current[index] = el)
-                                }
-                                value={digit}
-                                onChange={(e) =>
-                                    handleChange(
-                                        e.target.value,
-                                        index
-                                    )
-                                }
-                                onKeyDown={(e) =>
-                                    handleKeyDown(e, index)
-                                }
+                                ref={(el) => (inputRefs.current[index] = el)}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="\d*"
                                 maxLength={1}
-                                className="w-10 h-12 sm:w-11 sm:h-13 md:w-12 md:h-14 w-8 h-10 border-2 rounded-xl text-center text-2xl font-bold outline-none focus:border-purple-600 transition"
+                                value={digit}
+                                onChange={(e) => handleChange(e, index)}
+                                onKeyDown={(e) => handleKeyDown(e, index)}
+                                className="w-11 h-13 sm:w-12 sm:h-14 border-2 border-slate-200 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 rounded-xl text-center text-xl sm:text-2xl font-bold outline-none text-slate-800 transition-all bg-white"
                             />
                         ))}
-
                     </div>
 
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="w-full mt-8 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold transition"
+                        disabled={loading || otp.join("").length < 6}
+                        className="w-full mt-6 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-3 rounded-xl font-semibold transition-colors shadow-md"
                     >
-                        {loading
-                            ? "Verifying..."
-                            : "Verify OTP"}
+                        {loading ? "Verifying..." : "Verify OTP"}
                     </button>
-
                 </form>
 
-                <div className="text-center mt-6">
-
+                <div className="text-center mt-5 text-sm">
                     {timer > 0 ? (
-                        <p className="text-gray-500">
-                            Resend OTP in{" "}
-                            <span className="font-bold">
+                        <p className="text-slate-500">
+                            Resend code in{" "}
+                            <span className="font-semibold text-purple-600">
                                 {timer}s
                             </span>
                         </p>
                     ) : (
                         <button
+                            type="button"
                             onClick={handleResendOTP}
                             disabled={resendLoading}
-                            className="text-purple-600 font-semibold hover:underline"
+                            className="text-purple-600 font-semibold hover:underline disabled:opacity-50"
                         >
-                            {resendLoading
-                                ? "Sending..."
-                                : "Resend OTP"}
+                            {resendLoading ? "Sending..." : "Resend OTP"}
                         </button>
                     )}
-
                 </div>
 
-                <div className="text-center mt-6">
-
+                <div className="text-center mt-4">
                     <Link
                         to="/register"
-                        className="text-slate-500 hover:text-purple-600"
+                        className="text-xs sm:text-sm text-slate-500 hover:text-purple-600 transition-colors"
                     >
                         ← Back to Register
                     </Link>
-
                 </div>
-
             </div>
-
         </div>
     );
 };

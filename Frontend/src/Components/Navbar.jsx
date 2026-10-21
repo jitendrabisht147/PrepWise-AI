@@ -15,7 +15,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="h-20 z-50 bg-white shadow-md fixed top-0 w-full">
+    <header className="  h-20 z-20  top-0 w-full">
       <div className="flex justify-between items-center h-full max-w-[1400px] mx-auto px-5">
         
         {/* Brand Logo */}
@@ -24,7 +24,7 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-10 text-base font-semibold">
+        <nav className="hidden lg:flex items-center gap-10 text-base font-bold">
           <a href="#home" className="text-slate-700 text-lg hover:text-purple-600 transition-colors">
             Home
           </a>
@@ -37,12 +37,12 @@ const Navbar = () => {
         </nav>
 
         {/* Desktop Login Button */}
-        <div className="hidden lg:flex items-center">
+        <div className="hidden lg:flex  items-center">
           <Link 
             to="/login" 
-            className="text-base font-semibold bg-purple-600 hover:bg-purple-700 text-white px-8 py-2.5 rounded-lg shadow-sm transition-all duration-200 hover:shadow-purple-200 hover:shadow-md"
+            className=" text-base font-semibold bg-black hover:scale-105 transition-all duration-200  text-white px-8 py-2 rounded-lg"
           >
-            Login
+           Login
           </Link>
         </div>
 

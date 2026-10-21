@@ -1,40 +1,38 @@
-const Interview = require('./models/Interview');
 require('dotenv').config();
-const express = require('express'); 
-const User = require('./models/User')
-const bcrypt = require('bcryptjs')   
-const jwt = require('jsonwebtoken')
-const authMiddleware = require('./middleware/authMiddleware');
-const OpenAI = require('openai');
-const sendEmail = require('./Utils/sendEmail')
-const PendingUser = require('./models/PendingUser')
+const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const client = new OpenAI({            
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const OpenAI = require('openai');
+
+const Interview = require('./models/Interview');
+const User = require('./models/User');
+const PendingUser = require('./models/PendingUser');
+const authMiddleware = require('./middleware/authMiddleware');
+const connectDB = require('./config/db');
+const { sendEmail } = require('./Utils/sendEmail');
+
+const client = new OpenAI({
     apiKey: process.env.GROQ_API_KEY,
-    baseURL: 'https://api.groq.com/openai/v1',   
-});                                                                                                                                         
+    baseURL: 'https://api.groq.com/openai/v1',
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const connectDB = require('./config/db');
 connectDB();
 
 app.get('/', (req, res) => {
-    res.send('server running')
-})
-
+    res.send('server running');
+});
 
 app.post('/register', async (req, res) => {
     try {
-
         const { name, email, password } = req.body;
 
-        // Check if user already exists
         const existingUser = await User.findOne({ email });
-
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -42,23 +40,15 @@ app.post('/register', async (req, res) => {
             });
         }
 
-        // Delete old pending user if exists
         const existingPendingUser = await PendingUser.findOne({ email });
-
         if (existingPendingUser) {
             await PendingUser.deleteOne({ email });
         }
 
-        // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // OTP expiry (5 minutes)
         const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-        // Save pending user
         const pendingUser = new PendingUser({
             name,
             email,
@@ -69,37 +59,29 @@ app.post('/register', async (req, res) => {
 
         await pendingUser.save();
 
-        // Send OTP email
         await sendEmail(
             email,
             "PrepWise AI - Email Verification",
             `
                 <h2>Welcome to PrepWise AI</h2>
-        
                 <p>Your verification code is:</p>
-        
                 <h1 style="color:blue;">${otp}</h1>
-        
                 <p>This OTP is valid for 5 minutes.</p>
-        
                 <p>If you didn't create this account, you can ignore this email.</p>
             `
         );
-        
+
         return res.status(200).json({
             success: true,
             message: "OTP sent successfully. Please verify your email."
         });
 
     } catch (error) {
-
         console.error("Register Error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Server Error"
         });
-
     }
 });
 
@@ -145,9 +127,7 @@ app.post('/verify-otp', async (req, res) => {
 
 app.post('/resend-otp', async (req, res) => {
     try {
-
         const { email } = req.body;
-
         const pendingUser = await PendingUser.findOne({ email });
 
         if (!pendingUser) {
@@ -158,7 +138,6 @@ app.post('/resend-otp', async (req, res) => {
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
         const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
         pendingUser.otp = otp;
@@ -170,11 +149,11 @@ app.post('/resend-otp', async (req, res) => {
             email,
             "PrepWise AI - New Verification OTP",
             `
-        <h2>Your New OTP</h2>
-        <p>Your new verification code is:</p>
-        <h1 style="color:blue;">${otp}</h1>
-        <p>This OTP is valid for 5 minutes.</p>
-    `
+                <h2>Your New OTP</h2>
+                <p>Your new verification code is:</p>
+                <h1 style="color:blue;">${otp}</h1>
+                <p>This OTP is valid for 5 minutes.</p>
+            `
         );
 
         return res.status(200).json({
@@ -182,10 +161,8 @@ app.post('/resend-otp', async (req, res) => {
             message: "New OTP sent successfully."
         });
 
-
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             success: false,
             message: "Server Error"
@@ -196,34 +173,29 @@ app.post('/resend-otp', async (req, res) => {
 app.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const existemail = await User.findOne({ email })
-
+        const existemail = await User.findOne({ email });
 
         if (!existemail) {
             return res.status(404).json({
                 success: false,
                 message: 'User Does not exist'
-            })
+            });
         }
 
-        const isMatch = await bcrypt.compare(
-            password,
-            existemail.password
-        )
+        const isMatch = await bcrypt.compare(password, existemail.password);
 
         if (!isMatch) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid Password'
-            })
+            });
         }
+
         const token = jwt.sign(
             { userId: existemail._id },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
-
-        
 
         return res.status(200).json({
             success: true,
@@ -232,39 +204,29 @@ app.post('/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             success: false,
             message: 'Server Error'
         });
     }
-})
+});
 
 app.get('/profile', authMiddleware, async (req, res) => {
     try {
-
-        const user = await User.findById(req.user.userId)
-            .select('-password');
-
-        const interviews = await Interview.find({
-            userId: req.user.userId
-        });
+        const user = await User.findById(req.user.userId).select('-password');
+        const interviews = await Interview.find({ userId: req.user.userId });
 
         const totalInterviews = interviews.length;
+        const highestScore = totalInterviews > 0
+            ? Math.max(...interviews.map(item => item.score))
+            : 0;
 
-        const highestScore =
-            totalInterviews > 0
-                ? Math.max(...interviews.map(item => item.score))
-                : 0;
-
-        const averageScore =
-            totalInterviews > 0
-                ? Math.round(
-                    interviews.reduce((sum, item) => sum + item.score, 0) /
-                    totalInterviews
-                )
-                : 0;
+        const averageScore = totalInterviews > 0
+            ? Math.round(
+                interviews.reduce((sum, item) => sum + item.score, 0) / totalInterviews
+            )
+            : 0;
 
         const questionsPracticed = interviews.reduce(
             (sum, item) => sum + item.questions.length,
@@ -283,30 +245,18 @@ app.get('/profile', authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             success: false,
             message: 'Server Error'
         });
-
     }
 });
 
 app.post('/generate-questions', authMiddleware, async (req, res) => {
-    console.log(req.body);
-
-    const {
-        jobTitle,
-        experience,
-        skill,
-        difficulty,
-        numberOfQuestions
-    } = req.body;
+    const { jobTitle, experience, skill, difficulty, numberOfQuestions } = req.body;
 
     try {
-
         const response = await client.chat.completions.create({
             model: "openai/gpt-oss-120b",
             messages: [
@@ -331,8 +281,7 @@ Return only the questions.
         });
 
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             message: 'Error generating questions'
         });
@@ -341,13 +290,7 @@ Return only the questions.
 
 app.post('/evaluate-interview', authMiddleware, async (req, res) => {
     try {
-
-        console.log("Decoded User:", req.user);
-        console.log("User ID:", req.user.userId);
-
         const { questions, answers, jobTitle } = req.body;
-        console.log("Job Title from Frontend:", jobTitle);
-        console.log(req.body);
 
         const response = await client.chat.completions.create({
             model: "openai/gpt-oss-120b",
@@ -366,21 +309,16 @@ ${JSON.stringify(answers)}
 Return ONLY valid JSON.
 
 Format:
-
 {
   "score": 0,
   "strengths": [],
   "improvements": [],
   "feedback": ""
 }
-
-        `
+`
                 }
             ]
         });
-
-        console.log("Questions:", questions);
-        console.log("Answers:", answers);
 
         const aiResponse = response.choices[0].message.content
             .replace(/```json/g, '')
@@ -388,7 +326,6 @@ Format:
             .trim();
 
         const evaluation = JSON.parse(aiResponse);
-
 
         const interview = new Interview({
             userId: req.user.userId,
@@ -408,8 +345,7 @@ Format:
         });
 
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             message: 'Error evaluating interview'
         });
@@ -418,7 +354,6 @@ Format:
 
 app.get('/interviews', authMiddleware, async (req, res) => {
     try {
-
         const interviews = await Interview.find({
             userId: req.user.userId
         }).sort({ createdAt: -1 });
@@ -426,8 +361,7 @@ app.get('/interviews', authMiddleware, async (req, res) => {
         res.json(interviews);
 
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             message: 'Server Error'
         });
@@ -436,7 +370,6 @@ app.get('/interviews', authMiddleware, async (req, res) => {
 
 app.get('/interviews/:id', authMiddleware, async (req, res) => {
     try {
-
         const interview = await Interview.findOne({
             _id: req.params.id,
             userId: req.user.userId
@@ -451,8 +384,7 @@ app.get('/interviews/:id', authMiddleware, async (req, res) => {
         res.json(interview);
 
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             message: 'Server Error'
         });
@@ -477,8 +409,7 @@ app.get('/test-email', async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-
+        console.error(error);
         res.status(500).json({
             success: false,
             message: "Failed to send email"

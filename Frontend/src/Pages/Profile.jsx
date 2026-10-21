@@ -55,9 +55,7 @@ const Profile = () => {
                         Profile
                     </h1>
 
-                    <p className="text-slate-500 mt-2">
-                        Manage your account information.
-                    </p>
+        
                 </div>
 
                 {/* Profile Card */}

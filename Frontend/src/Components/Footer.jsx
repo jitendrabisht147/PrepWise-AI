@@ -17,7 +17,7 @@ const Footer = () => {
                             <li className='hover:text-purple-400 cursor-pointer transition'><a href='#features'>Features</a></li>
                             <li className='hover:text-purple-400 cursor-pointer transition'><a href='#howitworks'>How it works</a></li>
                             <li className='hover:text-purple-400 cursor-pointer transition'><Link to='/login'>Login</Link></li>
-                            <li className='hover:text-purple-400 cursor-pointer transition'><Link to='/'>Get Started</Link></li>
+                            <li className='hover:text-purple-400 cursor-pointer transition'><Link to='/register'>Get Started</Link></li>
                         </ul>
                     </div>
                 </div>
