@@ -1,18 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import Slidebar from '../Components/Slidebar'
-import Topbar from '../Components/Topbar'
-import Welcome from '../Components/Welcome'
-import Cards from '../Components/Cards'
-import RecentInt from '../Components/RecentInt'
+import React, { useEffect, useState } from 'react';
+import Slidebar from '../Components/Slidebar';
+import Topbar from '../Components/Topbar';
+import Welcome from '../Components/Welcome';
+import Cards from '../Components/Cards';
+import RecentInt from '../Components/RecentInt';
 import axios from 'axios';
-import { useTheme } from '../Components/ThemeContext'
-
+import { useTheme } from '../Components/ThemeContext';
 
 const Dashboard = () => {
-
   const [user, setUser] = useState(null);
   const { darkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -28,9 +27,7 @@ const Dashboard = () => {
           }
         );
 
-        console.log(response.data);
         setUser(response.data.user);
-
       } catch (error) {
         console.log(error.response?.data);
       }
@@ -39,35 +36,36 @@ const Dashboard = () => {
     fetchProfile();
   }, []);
 
-  console.log(user);
-
   return (
     <div
-      className={`flex pb-10 ${darkMode
-        ? "bg-slate-900"
-        : "bg-slate-100"
-        }`}
+      className={`min-h-screen flex ${
+        darkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-900"
+      }`}
     >
-      <div className='flex '>
-        <Slidebar
-          sidebarOpen={sidebarOpen}
+      {/* Sidebar Navigation */}
+      <Slidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 ml-0 lg:ml-72 min-h-screen flex flex-col transition-all duration-300">
+        {/* Top Header Bar */}
+        <Topbar
           setSidebarOpen={setSidebarOpen}
+          user={user}
+          onSearch={(query) => setSearchQuery(query)}
         />
-      </div>
-      <div
-        className={`flex-1 ml-0 lg:ml-70 min-h-screen ${darkMode
-          ? "bg-slate-900"
-          : "bg-slate-100"
-          }`}
-      >
-        <Topbar setSidebarOpen={setSidebarOpen} user={user} />
-        <Welcome user={user} />
-        <Cards />
-        <RecentInt />
-      </div>
 
+        {/* Dashboard Sections */}
+        <main className="flex-1 pb-12">
+          <Welcome user={user} />
+          <Cards />
+          <RecentInt searchQuery={searchQuery} />
+        </main>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

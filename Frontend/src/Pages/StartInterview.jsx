@@ -1,34 +1,121 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useTheme } from '../Components/ThemeContext';
+import {
+  FaArrowLeft,
+  FaBriefcase,
+  FaCode,
+  FaExclamationCircle,
+  FaMicrophone,
+  FaClock,
+} from 'react-icons/fa';
+import { RiSparklingFill } from 'react-icons/ri';
+import { IoMoon } from 'react-icons/io5';
+import { MdSunny } from 'react-icons/md';
+import { CgSpinner } from 'react-icons/cg';
+
+const EXPERIENCE = [
+  { value: 'Fresher', label: 'Fresher', hint: '0-1 yrs' },
+  { value: '1-3 Years', label: 'Junior', hint: '1-3 yrs' },
+  { value: '3-5 Years', label: 'Mid-level', hint: '3-5 yrs' },
+  { value: '5+ Years', label: 'Senior', hint: '5+ yrs' },
+];
+
+const DIFFICULTY = [
+  { value: 'Easy', hint: 'Core concepts' },
+  { value: 'Medium', hint: 'Real-world use' },
+  { value: 'Hard', hint: 'Deep dives' },
+];
+
+const QUESTION_COUNTS = ['3', '5', '8', '10'];
+
+const MINUTES_PER_QUESTION = 3;
+
+/* Reusable segmented control (radio group) */
+const Segmented = ({ label, options, value, onChange, darkMode, columns }) => (
+  <div role="radiogroup" aria-label={label}>
+    <p className="text-sm font-semibold mb-2.5">{label}</p>
+    <div className={`grid gap-2 ${columns}`}>
+      {options.map((opt) => {
+        const selected = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(opt.value)}
+            className={`text-left rounded-xl border px-3.5 py-2.5 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 ${
+              darkMode ? 'focus-visible:ring-offset-slate-900' : 'focus-visible:ring-offset-white'
+            } ${
+              selected
+                ? 'border-purple-600 bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                : darkMode
+                ? 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500'
+                : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+            }`}
+          >
+            <span className="block text-sm font-semibold leading-tight">
+              {opt.label || opt.value}
+            </span>
+            {opt.hint && (
+              <span
+                className={`block text-xs mt-0.5 ${
+                  selected ? 'text-purple-100' : darkMode ? 'text-slate-500' : 'text-slate-500'
+                }`}
+              >
+                {opt.hint}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
 
 const StartInterview = () => {
-
   const navigate = useNavigate();
+  const { darkMode, toggleTheme } = useTheme();
 
   const [formData, setFormData] = useState({
     jobTitle: '',
     experience: 'Fresher',
-    skill: 'React',
-    difficulty: 'Easy',
-    numberOfQuestions: '5'
+    skill: 'React, JavaScript, Tailwind CSS',
+    difficulty: 'Medium',
+    numberOfQuestions: '5',
   });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const setField = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (error) setError('');
   };
 
-  console.log(formData);
+  const handleChange = (e) => setField(e.target.name, e.target.value);
 
-  const handleStartInterview = async () => {
+  const handleStartInterview = async (e) => {
+    e.preventDefault();
+    if (!formData.jobTitle.trim()) {
+      setError('Please specify a target Job Title.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login', { replace: true });
+        return;
+      }
 
       const response = await axios.post(
-        "https://prepwise-ai-backend-0ttv.onrender.com/generate-questions",
+        'https://prepwise-ai-backend-0ttv.onrender.com/generate-questions',
         formData,
         {
           headers: {
@@ -37,162 +124,324 @@ const StartInterview = () => {
         }
       );
 
-      console.log(response.data);
+      let questionsArray = [];
+      if (Array.isArray(response.data.questions)) {
+        questionsArray = response.data.questions;
+      } else if (typeof response.data.questions === 'string') {
+        questionsArray = response.data.questions
+          .split('\n')
+          .map((q) => q.replace(/^\d+[\.\)]\s*/, '').trim())
+          .filter((q) => q.length > 0);
+      }
 
-      const questionsArray = response.data.questions
-        .split('\n')
-        .filter(q => q.trim() !== '');
-      console.log("Form Data:", formData);
-      console.log("Job Title Before Navigate:", formData.jobTitle);
+      if (!questionsArray || questionsArray.length === 0) {
+        throw new Error('AI could not generate questions. Please try again.');
+      }
 
       navigate('/mockinterview', {
         state: {
           questions: questionsArray,
-          jobTitle: formData.jobTitle
-        }
+          jobTitle: formData.jobTitle,
+          difficulty: formData.difficulty,
+          experience: formData.experience,
+        },
       });
-
-
-
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.error('Error initiating interview:', err);
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Failed to generate interview questions. Please verify your connection.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
+  const skills = formData.skill
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const experienceLabel =
+    EXPERIENCE.find((o) => o.value === formData.experience)?.label || formData.experience;
+  const totalMinutes = Number(formData.numberOfQuestions) * MINUTES_PER_QUESTION;
+
+  const inputWrap = `flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+    darkMode
+      ? 'bg-slate-950 border-slate-700 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/30 text-white'
+      : 'bg-white border-slate-300 focus-within:border-purple-600 focus-within:ring-2 focus-within:ring-purple-600/20 text-slate-900'
+  }`;
 
   return (
-    <div className="bg-slate-100 min-h-screen py-10">
+    <div
+      className={`h-screen overflow-hidden flex flex-col font-sans transition-colors duration-200 ${
+        darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+      }`}
+    >
+      {/* Header */}
+      <header
+        className={`h-16 shrink-0 border-b ${
+          darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto h-full px-6 flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            <Link to="/dashboard" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
+                P
+              </div>
+              <span className="text-xl font-bold tracking-tight">
+                PrepWise <span className="text-purple-600 dark:text-purple-400">AI</span>
+              </span>
+            </Link>
 
-      <div className="max-w-4xl mx-auto">
+            <span className={`h-5 w-px ${darkMode ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-        <div className="text-center">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition cursor-pointer ${
+                darkMode
+                  ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <FaArrowLeft className="text-xs" />
+              <span>Dashboard</span>
+            </button>
+          </div>
 
-          <h1 className="text-4xl font-bold text-slate-900">
-            Start Mock Interview
-          </h1>
-
-          <p className="text-slate-500 text-lg mt-3">
-            Configure your interview and let AI generate personalized questions.
-          </p>
-
+          <button
+            onClick={toggleTheme}
+            className={`p-2.5 rounded-xl border text-base transition cursor-pointer ${
+              darkMode
+                ? 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
+                : 'bg-white border-slate-200 text-purple-600 hover:bg-slate-100'
+            }`}
+            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {darkMode ? <MdSunny /> : <IoMoon />}
+          </button>
         </div>
+      </header>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200  p-10 m-10">
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10">
+          {/* Left: live interview summary */}
+          <aside className="lg:col-span-2 lg:sticky lg:top-8 self-start">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+              Set up your mock interview
+            </h1>
+            <p
+              className={`mt-3 text-base leading-relaxed max-w-md ${
+                darkMode ? 'text-slate-400' : 'text-slate-600'
+              }`}
+            >
+              Choose the role and level you are preparing for. The AI writes questions to match,
+              and you answer them out loud.
+            </p>
 
-          <div className="space-y-7">
+            {/* Live summary card */}
+            <div
+              className={`mt-7 rounded-2xl border overflow-hidden ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}
+            >
+              <div className="bg-purple-600 text-white px-5 py-4">
+                <p className="text-sm text-purple-200">Your interview</p>
+                <p
+                  className={`mt-0.5 text-xl font-bold leading-snug break-words ${
+                    formData.jobTitle.trim() ? '' : 'text-purple-200/80'
+                  }`}
+                >
+                  {formData.jobTitle.trim() || 'Target role not set yet'}
+                </p>
+              </div>
 
-            {/* Job Title */}
+              <dl className="px-5 py-4 text-sm">
+                {[
+                  ['Level', experienceLabel],
+                  ['Difficulty', formData.difficulty],
+                  ['Questions', formData.numberOfQuestions],
+                ].map(([term, desc]) => (
+                  <div
+                    key={term}
+                    className={`flex items-center justify-between py-2.5 border-b last:border-b-0 ${
+                      darkMode ? 'border-slate-800' : 'border-slate-100'
+                    }`}
+                  >
+                    <dt className={darkMode ? 'text-slate-400' : 'text-slate-500'}>{term}</dt>
+                    <dd className="font-semibold">{desc}</dd>
+                  </div>
+                ))}
+              </dl>
 
+              <div
+                className={`px-5 py-4 border-t ${
+                  darkMode ? 'border-slate-800' : 'border-slate-100'
+                }`}
+              >
+                <p className={`text-sm mb-2.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Topics covered
+                </p>
+                {skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map((s, i) => (
+                      <span
+                        key={`${s}-${i}`}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                          darkMode
+                            ? 'bg-purple-500/15 text-purple-300'
+                            : 'bg-purple-50 text-purple-700'
+                        }`}
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={`text-sm ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    Add skills to focus the questions.
+                  </p>
+                )}
+              </div>
+
+              <div
+                className={`px-5 py-3 flex items-center gap-2 text-sm ${
+                  darkMode ? 'bg-slate-950/60 text-slate-400' : 'bg-slate-50 text-slate-600'
+                }`}
+              >
+                <FaClock className="text-xs shrink-0" />
+                <span>About {totalMinutes} minutes</span>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right: form */}
+          <form
+            onSubmit={handleStartInterview}
+            className={`lg:col-span-3 rounded-2xl border p-6 sm:p-8 space-y-7 ${
+              darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+            }`}
+          >
+            {error && (
+              <div
+                role="alert"
+                className="p-3.5 rounded-xl border text-sm font-medium flex items-start gap-2.5 bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+              >
+                <FaExclamationCircle className="shrink-0 text-base mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Role */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-2">
-                 Job Title
+              <label htmlFor="jobTitle" className="block text-sm font-semibold mb-2.5">
+                Job title
               </label>
-
-              <input
-                type="text"
-                name="jobTitle"
-                value={formData.jobTitle}
-                onChange={handleChange}
-                placeholder="Frontend Developer"
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
-              />
+              <div className={inputWrap}>
+                <FaBriefcase className="text-slate-400 text-sm shrink-0" />
+                <input
+                  id="jobTitle"
+                  type="text"
+                  name="jobTitle"
+                  value={formData.jobTitle}
+                  onChange={handleChange}
+                  placeholder="e.g. Frontend React Developer"
+                  className="bg-transparent border-none outline-none w-full text-base font-medium placeholder-slate-400"
+                  required
+                  autoFocus
+                />
+              </div>
             </div>
 
             {/* Experience */}
-
-            <div>
-              <label className="block text-slate-700 font-semibold mb-2">
-              Experience Level
-              </label>
-
-              <select
-                name="experience"
-                value={formData.experience}
-                onChange={handleChange}
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
-              >
-                <option>Fresher</option>
-                <option>1-3 Years</option>
-                <option>3-5 Years</option>
-                <option>Or More</option>
-              </select>
-            </div>
-
-            {/* Skills */}
-
-            <div>
-              <label className="block text-slate-700 font-semibold mb-2">
-                 Skills / Topics
-              </label>
-
-              <input
-                type="text"
-                name="skill"
-                
-                onChange={handleChange}
-                placeholder="React, JavaScript, Node.js, MongoDB"
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
-              />
-            </div>
+            <Segmented
+              label="Experience level"
+              options={EXPERIENCE}
+              value={formData.experience}
+              onChange={(v) => setField('experience', v)}
+              darkMode={darkMode}
+              columns="grid-cols-2 sm:grid-cols-4"
+            />
 
             {/* Difficulty */}
+            <Segmented
+              label="Difficulty"
+              options={DIFFICULTY}
+              value={formData.difficulty}
+              onChange={(v) => setField('difficulty', v)}
+              darkMode={darkMode}
+              columns="grid-cols-1 sm:grid-cols-3"
+            />
 
+            {/* Skills */}
             <div>
-              <label className="block text-slate-700 font-semibold mb-2">
-               Difficulty Level
+              <label htmlFor="skill" className="block text-sm font-semibold mb-2.5">
+                Skills and technologies
               </label>
-
-              <select
-                name="difficulty"
-                value={formData.difficulty}
-                onChange={handleChange}
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
-              >
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-              </select>
+              <div className={inputWrap}>
+                <FaCode className="text-slate-400 text-sm shrink-0" />
+                <input
+                  id="skill"
+                  type="text"
+                  name="skill"
+                  value={formData.skill}
+                  onChange={handleChange}
+                  placeholder="React, JavaScript, Node.js"
+                  className="bg-transparent border-none outline-none w-full text-base font-medium placeholder-slate-400"
+                />
+              </div>
+              <p className={`mt-2 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                Separate skills with commas.
+              </p>
             </div>
 
-            {/* Questions */}
+            {/* Question count */}
+            <Segmented
+              label="Number of questions"
+              options={QUESTION_COUNTS.map((n) => ({ value: n, label: n }))}
+              value={formData.numberOfQuestions}
+              onChange={(v) => setField('numberOfQuestions', v)}
+              darkMode={darkMode}
+              columns="grid-cols-4"
+            />
 
-            <div>
-              <label className="block text-slate-700 font-semibold mb-2">
-                 Number of Questions
-              </label>
-
-              <select
-                name="numberOfQuestions"
-                value={formData.numberOfQuestions}
-                onChange={handleChange}
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
+            {/* Submit */}
+            <div className="pt-1">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-base transition-colors shadow-md shadow-purple-600/25 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
               >
-                
-                <option>2</option>
-                <option>4</option>
-                <option>5</option>
-                <option>6</option>
-                <option>8</option>
+                {loading ? (
+                  <>
+                    <CgSpinner className="animate-spin text-xl" />
+                    <span>Generating questions...</span>
+                  </>
+                ) : (
+                  <>
+                    <RiSparklingFill className="text-base" />
+                    <span>Start interview</span>
+                  </>
+                )}
+              </button>
 
-                <option>10</option>
-              </select>
+              <p
+                className={`mt-3 flex items-center justify-center gap-2 text-xs ${
+                  darkMode ? 'text-slate-500' : 'text-slate-500'
+                }`}
+              >
+                <FaMicrophone className="shrink-0" />
+                <span>Allow microphone access so your answers can be evaluated.</span>
+              </p>
             </div>
-
-            <button
-              onClick={handleStartInterview}
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer"
-            >
-               Start Interview
-            </button>
-
-          </div>
-
+          </form>
         </div>
-
-      </div>
-
+      </main>
     </div>
   );
-}
+};
 
-export default StartInterview
+export default StartInterview;
