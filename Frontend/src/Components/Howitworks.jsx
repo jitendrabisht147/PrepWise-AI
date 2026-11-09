@@ -8,7 +8,7 @@ const Howitworks = () => {
                     <h1 className='mt-8 md:mt-15 text-4xl font-bold text-slate-900'>How PrepWise AI Works</h1>
                     <p className='text-lg text-slate-600 max-w-2xl'>Follow a simple flow to create personalized interview practice sessions in minutes.</p>
                 </div>
-                
+
                 <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10'>
                     {steps.map((data, index) => {
                         return (
