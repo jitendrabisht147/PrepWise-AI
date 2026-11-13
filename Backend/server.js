@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const OpenAI = require('openai');
-
 const Interview = require('./models/Interview');
 const User = require('./models/User');
 const PendingUser = require('./models/PendingUser');
@@ -346,7 +345,7 @@ Format:
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({
+        res.status(500).json({  
             message: 'Error evaluating interview'
         });
     }
